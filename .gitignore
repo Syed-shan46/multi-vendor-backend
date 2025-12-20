@@ -1,0 +1,14 @@
+# Defaults
+node_modules/
+npm-debug.log
+.DS_Store
+
+# Environment variables
+.env
+
+# Secrets - CRITICAL
+serviceAccountKey.json
+
+# Logs
+logs/
+*.log
