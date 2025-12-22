@@ -141,6 +141,8 @@ const updateOrderStatus = async (req, res, next) => {
         // Send Notification to Customer
         try {
             const customer = await User.findById(order.userId);
+            console.log(`[Notification] Attempting to notify customer ${order.userId} about order ${order._id}. Status: ${status}`);
+
             if (customer && customer.fcmToken) {
                 let title = 'Order Update';
                 let body = `Your order #${order._id.toString().slice(-6)} is now ${status}`;
@@ -151,13 +153,24 @@ const updateOrderStatus = async (req, res, next) => {
                 } else if (status === 'Cancelled') {
                     title = 'Order Cancelled ❌';
                     body = `Your order was cancelled. Reason: ${cancellationReason || 'Unavailable'}`;
+                } else if (status === 'Rejected') {
+                    title = 'Order Rejected ❌';
+                    body = 'Your order was rejected by the vendor.';
                 } else if (status === 'Ready') {
                     title = 'Order Ready 🥡';
-                    body = 'Your order is ready!';
+                    body = 'Your order is ready for pickup/delivery!';
                 } else if (status === 'Out for Delivery') {
                     title = 'Out for Delivery 🛵';
                     body = 'Your order is on the way!';
+                } else if (status === 'Delivered') {
+                    title = 'Order Delivered 🏁';
+                    body = 'Enjoy your purchase!';
+                } else if (status === 'Preparing') {
+                    title = 'Preparing Order 🍳';
+                    body = 'The vendor is preparing your order.';
                 }
+
+                console.log(`[Notification] Sending: "${title}" to token: ${customer.fcmToken.slice(0, 10)}...`);
 
                 // Send async - don't block response
                 sendPushNotification(customer.fcmToken, title, body, {
@@ -165,6 +178,8 @@ const updateOrderStatus = async (req, res, next) => {
                     type: 'order_update',
                     status: status
                 });
+            } else {
+                console.warn(`[Notification] Skipping: ${customer ? 'User has no FCM Token' : 'Customer not found'}`);
             }
         } catch (e) {
             console.error('Notification error:', e.message);

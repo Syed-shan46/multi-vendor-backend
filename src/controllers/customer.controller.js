@@ -4,6 +4,7 @@ const RestaurantMenu = require('../models/RestaurantMenu');
 const SupermarketProduct = require('../models/SupermarketProduct');
 const Vendor = require('../models/Vendor');
 const VendorProfile = require('../models/VendorProfile');
+const VendorLocation = require('../models/VendorLocation');
 const { successResponse, errorResponse } = require('../utils/response');
 
 // @desc    Get All Categories (Common)
@@ -86,7 +87,11 @@ const getAllVendors = async (req, res, next) => {
         // This is N+1 query problem, aggregation is better but simple loop for now
         const vendorData = [];
         for (const v of vendors) {
-            const profile = await VendorProfile.findOne({ vendorId: v._id });
+            const [profile, location] = await Promise.all([
+                VendorProfile.findOne({ vendorId: v._id }),
+                VendorLocation.findOne({ vendorId: v._id })
+            ]);
+
             if (profile) {
                 vendorData.push({
                     id: v._id,
@@ -94,7 +99,9 @@ const getAllVendors = async (req, res, next) => {
                     name: profile.businessName,
                     logo: profile.businessLogo,
                     description: profile.description,
-                    // location?
+                    latitude: location ? location.latitude : null,
+                    longitude: location ? location.longitude : null,
+                    deliveryRadius: location ? location.deliveryRadius : null,
                 });
             }
         }

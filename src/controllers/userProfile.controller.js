@@ -106,8 +106,34 @@ const getProfile = async (req, res, next) => {
     }
 };
 
+// @desc    Update FCM Token
+// @route   PATCH /api/user/profile/fcm-token
+// @access  Private
+const updateFcmToken = async (req, res, next) => {
+    try {
+        const { fcmToken } = req.body;
+
+        if (!fcmToken) {
+            return errorResponse(res, 400, 'FCM Token is required');
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return errorResponse(res, 404, 'User not found');
+        }
+
+        user.fcmToken = fcmToken;
+        await user.save();
+
+        successResponse(res, 200, 'FCM Token updated successfully');
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     updateProfile,
     saveAddress,
-    getProfile
+    getProfile,
+    updateFcmToken
 };
