@@ -23,7 +23,10 @@ const updateProfile = async (req, res, next) => {
             mobile: user.mobile,
             name: user.name,
             role: 'customer',
-            token: req.token // Pass back token if needed, or client keeps exist
+            isEligibleForWelcome50: user.isEligibleForWelcome50,
+            freeDeliveriesCount: user.freeDeliveriesCount,
+            usedCoupons: user.usedCoupons,
+            token: req.token
         });
     } catch (error) {
         next(error);
@@ -99,7 +102,10 @@ const getProfile = async (req, res, next) => {
             name: user.name,
             role: user.role,
             addresses: user.addresses,
-            token: req.token // Or reuse existing token if middleware attaches it
+            isEligibleForWelcome50: user.isEligibleForWelcome50,
+            freeDeliveriesCount: user.freeDeliveriesCount,
+            usedCoupons: user.usedCoupons,
+            token: req.token
         });
     } catch (error) {
         next(error);

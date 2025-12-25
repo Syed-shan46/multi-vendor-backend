@@ -41,6 +41,17 @@ const userSchema = new mongoose.Schema({
         receiverPhone: { type: String, required: true },
         lat: { type: Number },
         lng: { type: Number }
+    }],
+    isEligibleForWelcome50: {
+        type: Boolean,
+        default: true
+    },
+    freeDeliveriesCount: {
+        type: Number,
+        default: 0
+    },
+    usedCoupons: [{
+        type: String
     }]
 }, {
     timestamps: true

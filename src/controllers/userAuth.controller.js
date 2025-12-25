@@ -80,6 +80,10 @@ const verifyOtp = async (req, res, next) => {
             mobile: user.mobile,
             name: user.name,
             role: 'customer',
+            isEligibleForWelcome50: user.isEligibleForWelcome50,
+            freeDeliveriesCount: user.freeDeliveriesCount,
+            usedCoupons: user.usedCoupons,
+            addresses: user.addresses,
             token
         });
     } catch (error) {
@@ -132,6 +136,10 @@ const userFirebaseAuth = async (req, res, next) => {
             mobile: user.mobile,
             name: user.name,
             role: 'customer',
+            isEligibleForWelcome50: user.isEligibleForWelcome50,
+            freeDeliveriesCount: user.freeDeliveriesCount,
+            usedCoupons: user.usedCoupons,
+            addresses: user.addresses,
             token
         });
 

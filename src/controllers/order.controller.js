@@ -19,7 +19,11 @@ const { successResponse, errorResponse } = require('../utils/response');
 
 const createOrder = async (req, res, next) => {
     try {
-        const { userId, items, orderType, userNote, deliveryAddress } = req.body;
+        const {
+            userId, items, orderType, userNote,
+            deliveryAddress, latitude, longitude,
+            appliedCoupon, discountAmount
+        } = req.body;
         // items: [{ productId, name, quantity, price, vendorId (optional) }]
 
         // 1. Group items by Vendor
@@ -30,8 +34,6 @@ const createOrder = async (req, res, next) => {
 
             // If vendorId is not provided in the item, look it up (Fallback)
             if (!itemVendorId) {
-                // Try to find in all product collections
-                // This is slightly expensive but ensures data integrity for mixed carts
                 let product = await GroceryProduct.findById(item.productId);
                 if (!product) product = await RestaurantMenu.findById(item.productId);
                 if (!product) product = await SupermarketProduct.findById(item.productId);
@@ -39,15 +41,9 @@ const createOrder = async (req, res, next) => {
                 if (product) {
                     itemVendorId = product.vendorId.toString();
                 } else {
-                    // Fallback to request body vendorId if strictly provided and product not found (Edge case)
-                    // But strictly, we should probably error or skip. 
-                    // For now, let's assume if product not found, we use the fallback top-level vendorId if it exists, else error.
                     if (req.body.vendorId) {
                         itemVendorId = req.body.vendorId;
                     } else {
-                        // Skip item or throw error? Let's skip to be safe, or error.
-                        // Continuing might lose items.
-                        // Let's assume top level vendorId is the default for "unknown" items
                         continue;
                     }
                 }
@@ -72,7 +68,6 @@ const createOrder = async (req, res, next) => {
         for (const vId in ordersByVendor) {
             const vendorGroup = ordersByVendor[vId];
 
-            // Verify vendor exists
             const vendor = await Vendor.findById(vId);
             if (!vendor) continue;
 
@@ -84,20 +79,48 @@ const createOrder = async (req, res, next) => {
                 orderType,
                 status: 'Pending',
                 userNote: userNote || '',
-                deliveryAddress
+                deliveryAddress,
+                latitude,
+                longitude,
+                appliedCoupon,
+                discountAmount: createdOrders.length === 0 ? (discountAmount || 0) : 0 // Apply discount only to first split order
             });
 
             createdOrders.push(newOrder);
 
-            // 3. Emit Event to this specific Vendor
             if (io) {
                 io.to(vId.toString()).emit('new-order', newOrder);
-                console.log(`Emitted new-order event to vendor room: ${vId}`);
             }
         }
 
         if (createdOrders.length === 0) {
-            return errorResponse(res, 400, 'No valid orders could be created from the items provided');
+            return errorResponse(res, 400, 'No valid orders could be created');
+        }
+
+        // 3. Update User promotional data
+        if (appliedCoupon) {
+            const user = await User.findById(userId);
+            if (user) {
+                // Add to used coupons
+                if (!user.usedCoupons.includes(appliedCoupon)) {
+                    user.usedCoupons.push(appliedCoupon);
+                }
+
+                // Handle WELCOME50 specific logic
+                if (appliedCoupon === 'WELCOME50') {
+                    user.isEligibleForWelcome50 = false;
+                    user.freeDeliveriesCount += 3; // WELCOME50 gives 3 free deliveries
+                }
+
+                // If it was just a regular free delivery coupon (simplified)
+                if (appliedCoupon === 'FREESHIP' && user.freeDeliveriesCount > 0) {
+                    // Only decrement if we actually used a general credit? 
+                    // Usually coupons are separate from credits. 
+                    // But if user has credits, we might want to track that too.
+                }
+
+                await user.save();
+            }
         }
 
         // Return the list of orders (or just the first one if legacy frontend expects object)

@@ -43,6 +43,20 @@ const orderSchema = new mongoose.Schema({
     deliveryAddress: {
         type: String,
         required: true
+    },
+    latitude: {
+        type: Number
+    },
+    longitude: {
+        type: Number
+    },
+    appliedCoupon: {
+        type: String,
+        default: null
+    },
+    discountAmount: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true
